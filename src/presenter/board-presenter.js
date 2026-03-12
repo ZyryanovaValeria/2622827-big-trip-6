@@ -1,8 +1,8 @@
 import SortView from '../view/sort-view.js';
 import PointListView from '../view/point-list-view.js';
 import PointView from '../view/point-view.js';
-import EditFormView from '../view/edit-form-view.js';
-import {render, RenderPosition, createElement} from '../render.js';
+import CreateFormView from '../view/create-form-view.js';
+import {render, createElement} from '../render.js';
 
 class ListItemView {
   constructor(contentView) {
@@ -29,22 +29,48 @@ class ListItemView {
 export default class BoardPresenter {
   pointListComponent = new PointListView();
 
-  constructor({boardContainer}) {
+  constructor({boardContainer, pointsModel}) {
     this.boardContainer = boardContainer;
+    this.pointsModel = pointsModel;
   }
 
   init() {
-    render(new SortView(), this.boardContainer);
-    render(this.pointListComponent, this.boardContainer);
-    
-    // Форма редактирования должна быть первой в списке
-    const editFormView = new EditFormView();
-    render(new ListItemView(editFormView), this.pointListComponent.getElement(), RenderPosition.AFTERBEGIN);
+    const points = this.pointsModel.getPoints();
+    const destinations = this.pointsModel.getDestinations();
+    const offersByType = this.pointsModel.getOffersByType();
 
-    // Точки маршрута - 3 экземпляра
-    for (let i = 0; i < 3; i++) {
-      const pointView = new PointView();
-      render(new ListItemView(pointView), this.pointListComponent.getElement());
+    render(new SortView(), this.boardContainer);
+
+    // Форма создания (первое окно) — над списком
+    render(new CreateFormView(), this.boardContainer);
+
+    render(this.pointListComponent, this.boardContainer);
+
+    const POINTS_TO_RENDER = 5;
+
+    for (let i = 0; i < Math.min(points.length, POINTS_TO_RENDER); i++) {
+      const point = points[i];
+      const destination = destinations.find(
+        (item) => item.id === point.destinationId,
+      );
+      const offersOfType = offersByType.find(
+        (offer) => offer.type === point.type,
+      ).offers;
+      const selectedOffers = offersOfType.filter((offer) =>
+        point.offers.includes(offer.id),
+      );
+
+      const pointView = new PointView({
+        point,
+        destination,
+        offers: selectedOffers,
+      });
+
+      render(
+        new ListItemView(pointView),
+        this.pointListComponent.getElement(),
+      );
     }
   }
 }
+
