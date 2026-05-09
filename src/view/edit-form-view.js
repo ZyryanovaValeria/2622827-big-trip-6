@@ -187,6 +187,9 @@ export default class EditFormView extends AbstractStatefulView {
     this.element
       .querySelector('.event__input--destination')
       .addEventListener('input', this.#destinationChangeHandler);
+    this.element
+      .querySelector('.event__available-offers')
+      .addEventListener('change', this.#offersChangeHandler);
     this.#initDatePickers();
   }
 
@@ -257,12 +260,12 @@ export default class EditFormView extends AbstractStatefulView {
 
   #formSubmitHandler = (evt) => {
     evt.preventDefault();
-    this.#handleFormSubmit?.();
+    this.#handleFormSubmit?.(this._state.point);
   };
 
   #rollupClickHandler = (evt) => {
     evt.preventDefault();
-    this.#handleRollupClick?.();
+    this.#handleRollupClick?.(this._state.point);
   };
 
   #typeChangeHandler = (evt) => {
@@ -297,6 +300,19 @@ export default class EditFormView extends AbstractStatefulView {
       point: {
         ...this._state.point,
         destinationId: selectedDestination.id,
+      },
+    });
+  };
+
+  #offersChangeHandler = () => {
+    const selectedOffers = Array.from(
+      this.element.querySelectorAll('.event__offer-checkbox:checked'),
+    ).map((offerElement) => Number(offerElement.id.replace('event-offer-', '')));
+
+    this.updateElement({
+      point: {
+        ...this._state.point,
+        offers: selectedOffers,
       },
     });
   };

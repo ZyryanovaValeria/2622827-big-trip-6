@@ -1,4 +1,7 @@
 import dayjs from 'dayjs';
+import duration from 'dayjs/plugin/duration';
+
+dayjs.extend(duration);
 
 const padZero = (value) => String(value).padStart(2, '0');
 
@@ -21,12 +24,10 @@ const humanizeEditFormDateTime = (date) =>
   dayjs(date).format('DD/MM/YY HH:mm');
 
 const getDuration = (dateFrom, dateTo) => {
-  const diffInMs = dayjs(dateTo).diff(dayjs(dateFrom));
-  const diffInMinutesTotal = Math.floor(diffInMs / 60000);
-
-  const days = Math.floor(diffInMinutesTotal / (60 * 24));
-  const hours = Math.floor((diffInMinutesTotal % (60 * 24)) / 60);
-  const minutes = diffInMinutesTotal % 60;
+  const pointDuration = dayjs.duration(dayjs(dateTo).diff(dayjs(dateFrom)));
+  const days = Math.floor(pointDuration.asDays());
+  const hours = pointDuration.hours();
+  const minutes = pointDuration.minutes();
 
   if (days > 0) {
     return `${padZero(days)}D ${padZero(hours)}H ${padZero(minutes)}M`;
