@@ -1,5 +1,7 @@
-const HUMANIZE_MONTH_OPTIONS = { month: 'short', day: '2-digit' };
-const HUMANIZE_TIME_OPTIONS = { hour: '2-digit', minute: '2-digit' };
+import dayjs from 'dayjs';
+import duration from 'dayjs/plugin/duration';
+
+dayjs.extend(duration);
 
 const padZero = (value) => String(value).padStart(2, '0');
 
@@ -13,28 +15,19 @@ const getRandomInteger = (a = 0, b = 1) => {
 const getRandomArrayElement = (items) => items[getRandomInteger(0, items.length - 1)];
 
 const humanizePointDate = (date) =>
-  date.toLocaleString('en-US', HUMANIZE_MONTH_OPTIONS).toUpperCase();
+  dayjs(date).format('MMM DD').toUpperCase();
 
 const humanizePointTime = (date) =>
-  date.toLocaleString('en-GB', HUMANIZE_TIME_OPTIONS);
+  dayjs(date).format('HH:mm');
 
-const humanizeEditFormDateTime = (date) => {
-  const day = padZero(date.getDate());
-  const month = padZero(date.getMonth() + 1);
-  const year = String(date.getFullYear()).slice(-2);
-  const hours = padZero(date.getHours());
-  const minutes = padZero(date.getMinutes());
-
-  return `${day}/${month}/${year} ${hours}:${minutes}`;
-};
+const humanizeEditFormDateTime = (date) =>
+  dayjs(date).format('DD/MM/YY HH:mm');
 
 const getDuration = (dateFrom, dateTo) => {
-  const diffInMs = dateTo.getTime() - dateFrom.getTime();
-  const diffInMinutesTotal = Math.floor(diffInMs / 60000);
-
-  const days = Math.floor(diffInMinutesTotal / (60 * 24));
-  const hours = Math.floor((diffInMinutesTotal % (60 * 24)) / 60);
-  const minutes = diffInMinutesTotal % 60;
+  const pointDuration = dayjs.duration(dayjs(dateTo).diff(dayjs(dateFrom)));
+  const days = Math.floor(pointDuration.asDays());
+  const hours = pointDuration.hours();
+  const minutes = pointDuration.minutes();
 
   if (days > 0) {
     return `${padZero(days)}D ${padZero(hours)}H ${padZero(minutes)}M`;
@@ -55,4 +48,3 @@ export {
   humanizeEditFormDateTime,
   getDuration,
 };
-

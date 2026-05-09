@@ -1,6 +1,5 @@
 import SortView from '../view/sort-view.js';
 import PointListView from '../view/point-list-view.js';
-import CreateFormView from '../view/create-form-view.js';
 import NoPointView from '../view/no-point-view.js';
 import PointPresenter from './point-presenter.js';
 import {render} from '../framework/render.js';
@@ -31,7 +30,6 @@ export default class BoardPresenter {
     this.#sortComponent = new SortView();
     this.#sortComponent.setSortTypeChangeHandler(this.#handleSortTypeChange);
     render(this.#sortComponent, this.boardContainer);
-    render(new CreateFormView({destinations, offersByType}), this.boardContainer);
     render(this.pointListComponent, this.boardContainer);
     this.#renderPoints(points, destinations, offersByType);
   }
@@ -90,6 +88,7 @@ export default class BoardPresenter {
       return;
     }
 
+    this.#resetAllPointViewsToDefault();
     this.#currentSortType = sortType;
     this.#clearPointList();
     this.#renderPoints(

@@ -81,6 +81,16 @@ export default class PointPresenter {
     this.#isPointMode = true;
   };
 
+  #handleFormSubmit = (updatedPoint) => {
+    this.#onPointChange(updatedPoint);
+    this.#replaceFormToPoint();
+  };
+
+  #handleRollupClick = (updatedPoint) => {
+    this.#onPointChange(updatedPoint);
+    this.#replaceFormToPoint();
+  };
+
   #handleFavoriteClick = (updatedPoint) => {
     this.#onPointChange(updatedPoint);
   };
@@ -103,8 +113,8 @@ export default class PointPresenter {
       point: this.#point,
       destinations: this.#destinations,
       offersByType: this.#offersByType,
-      onFormSubmit: this.#replaceFormToPoint,
-      onRollupClick: this.#replaceFormToPoint,
+      onFormSubmit: this.#handleFormSubmit,
+      onRollupClick: this.#handleRollupClick,
     });
   }
 
