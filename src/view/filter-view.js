@@ -32,14 +32,25 @@ const createFilterTemplate = (filters) => {
 
 export default class FilterView extends AbstractView {
   #filters = [];
+  #handleFilterTypeChange = null;
 
-  constructor({filters}) {
+  constructor({filters, onFilterTypeChange}) {
     super();
     this.#filters = filters;
+    this.#handleFilterTypeChange = onFilterTypeChange;
+    this.element.addEventListener('change', this.#filterTypeChangeHandler);
   }
 
   get template() {
     return createFilterTemplate(this.#filters);
   }
+
+  #filterTypeChangeHandler = (evt) => {
+    if (!evt.target.classList.contains('trip-filters__filter-input')) {
+      return;
+    }
+
+    this.#handleFilterTypeChange?.(evt.target.value);
+  };
 }
 

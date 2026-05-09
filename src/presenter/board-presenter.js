@@ -1,29 +1,52 @@
 import SortView from '../view/sort-view.js';
 import PointListView from '../view/point-list-view.js';
 import NoPointView from '../view/no-point-view.js';
+import CreateFormView from '../view/create-form-view.js';
 import PointPresenter from './point-presenter.js';
-import {render} from '../framework/render.js';
-import {SORT_TYPES} from '../const.js';
+import {remove, render, RenderPosition} from '../framework/render.js';
+import {FILTER_TYPES, SORT_TYPES, USER_ACTIONS} from '../const.js';
+import {filter} from '../mock/filter.js';
 
 export default class BoardPresenter {
   pointListComponent = new PointListView();
   #sortComponent = null;
+  #noPointComponent = null;
+  #createFormComponent = null;
   #pointPresenters = [];
   #currentSortType = SORT_TYPES.DAY;
-  #pointsToRender = 5;
 
-  constructor({boardContainer, pointsModel}) {
+  constructor({boardContainer, pointsModel, filterModel, newPointButton}) {
     this.boardContainer = boardContainer;
     this.pointsModel = pointsModel;
+    this.filterModel = filterModel;
+    this.newPointButton = newPointButton;
   }
 
   init() {
+    this.pointsModel.addObserver(this.#handleModelEvent);
+    this.filterModel.addObserver(this.#handleModelEvent);
+    this.newPointButton.addEventListener('click', this.#handleNewPointButtonClick);
+    this.#renderBoard();
+  }
+
+  get points() {
+    const filterType = this.filterModel.getFilter();
     const points = this.pointsModel.getPoints();
+    return filter[filterType](points);
+  }
+
+  #renderBoard() {
+    const points = this.points;
     const destinations = this.pointsModel.getDestinations();
     const offersByType = this.pointsModel.getOffersByType();
 
+    this.#clearBoard();
+
     if (points.length === 0) {
-      render(new NoPointView(), this.boardContainer);
+      this.#noPointComponent = new NoPointView({
+        filterType: this.filterModel.getFilter(),
+      });
+      render(this.#noPointComponent, this.boardContainer);
       return;
     }
 
@@ -37,37 +60,35 @@ export default class BoardPresenter {
   #renderPoints(points, destinations, offersByType) {
     const sortedPoints = this.#getSortedPoints(points);
 
-    for (let i = 0; i < Math.min(sortedPoints.length, this.#pointsToRender); i++) {
+    for (let i = 0; i < sortedPoints.length; i++) {
       const pointPresenter = new PointPresenter({
         pointListContainer: this.pointListComponent.element,
         point: sortedPoints[i],
         destinations,
         offersByType,
         onPointChange: this.#handlePointChange,
-        onBeforeEdit: this.#resetAllPointViewsToDefault,
+        onBeforeEdit: this.#handleBeforeEdit,
       });
       pointPresenter.init();
       this.#pointPresenters.push(pointPresenter);
     }
   }
 
-  #handlePointChange = (updatedPoint) => {
-    this.pointsModel.updatePoint(updatedPoint);
-
-    if (this.#currentSortType === SORT_TYPES.DAY) {
-      const presenter = this.#pointPresenters.find(
-        (item) => item.pointId === updatedPoint.id,
-      );
-      presenter?.update(updatedPoint);
-      return;
+  #handlePointChange = (actionType, updatedPoint) => {
+    switch (actionType) {
+      case USER_ACTIONS.UPDATE_POINT:
+        this.pointsModel.updatePoint(updatedPoint.id, updatedPoint);
+        break;
+      case USER_ACTIONS.ADD_POINT:
+        this.pointsModel.addPoint(updatedPoint);
+        this.#destroyCreateForm();
+        break;
+      case USER_ACTIONS.DELETE_POINT:
+        this.pointsModel.deletePoint(updatedPoint.id);
+        break;
+      default:
+        break;
     }
-
-    this.#clearPointList();
-    this.#renderPoints(
-      this.pointsModel.getPoints(),
-      this.pointsModel.getDestinations(),
-      this.pointsModel.getOffersByType(),
-    );
   };
 
   #resetAllPointViewsToDefault = () => {
@@ -76,11 +97,25 @@ export default class BoardPresenter {
     }
   };
 
+  #handleBeforeEdit = () => {
+    this.#resetAllPointViewsToDefault();
+    this.#destroyCreateForm();
+  };
+
   #clearPointList() {
     for (const presenter of this.#pointPresenters) {
       presenter.destroy();
     }
     this.#pointPresenters = [];
+  }
+
+  #clearBoard() {
+    this.#clearPointList();
+    remove(this.#sortComponent);
+    this.#sortComponent = null;
+    remove(this.#noPointComponent);
+    this.#noPointComponent = null;
+    remove(this.pointListComponent);
   }
 
   #handleSortTypeChange = (sortType) => {
@@ -92,10 +127,68 @@ export default class BoardPresenter {
     this.#currentSortType = sortType;
     this.#clearPointList();
     this.#renderPoints(
-      this.pointsModel.getPoints(),
+      this.points,
       this.pointsModel.getDestinations(),
       this.pointsModel.getOffersByType(),
     );
+  };
+
+  #handleModelEvent = (event) => {
+    if (event === 'filterTypeChange') {
+      this.#currentSortType = SORT_TYPES.DAY;
+    }
+
+    this.#destroyCreateForm();
+    this.#renderBoard();
+  };
+
+  #createPoint = () => {
+    this.filterModel.setFilter(FILTER_TYPES.EVERYTHING);
+    this.#currentSortType = SORT_TYPES.DAY;
+    this.#resetAllPointViewsToDefault();
+    this.#destroyCreateForm();
+
+    this.#createFormComponent = new CreateFormView({
+      destinations: this.pointsModel.getDestinations(),
+      offersByType: this.pointsModel.getOffersByType(),
+      onFormSubmit: this.#handleCreateFormSubmit,
+      onCancelClick: this.#destroyCreateForm,
+    });
+
+    if (!this.pointListComponent.element.parentElement) {
+      render(this.pointListComponent, this.boardContainer);
+    }
+
+    render(this.#createFormComponent, this.pointListComponent.element, RenderPosition.AFTERBEGIN);
+    document.addEventListener('keydown', this.#escKeyDownHandler);
+    this.newPointButton.disabled = true;
+  };
+
+  #destroyCreateForm = () => {
+    if (this.#createFormComponent === null) {
+      return;
+    }
+
+    remove(this.#createFormComponent);
+    this.#createFormComponent = null;
+    document.removeEventListener('keydown', this.#escKeyDownHandler);
+    this.newPointButton.disabled = false;
+  };
+
+  #handleCreateFormSubmit = (newPoint) => {
+    this.#handlePointChange(USER_ACTIONS.ADD_POINT, newPoint);
+  };
+
+  #handleNewPointButtonClick = (evt) => {
+    evt.preventDefault();
+    this.#createPoint();
+  };
+
+  #escKeyDownHandler = (evt) => {
+    if (evt.key === 'Escape' || evt.key === 'Esc') {
+      evt.preventDefault();
+      this.#destroyCreateForm();
+    }
   };
 
   #getSortedPoints(points) {

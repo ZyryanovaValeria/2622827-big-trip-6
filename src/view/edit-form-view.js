@@ -95,7 +95,7 @@ const createEditFormTemplate = ({point, destinations, offersByType}) => {
           <label class="event__label  event__type-output" for="event-destination-1">
             ${typeLabel}
           </label>
-          <input class="event__input  event__input--destination" id="event-destination-1" type="text" name="event-destination" value="${destinationName}" list="destination-list-1">
+          <input class="event__input  event__input--destination" id="event-destination-1" type="text" name="event-destination" value="${destinationName}" list="destination-list-1" required>
           <datalist id="destination-list-1">
             ${destinationOptionsTemplate}
           </datalist>
@@ -114,7 +114,7 @@ const createEditFormTemplate = ({point, destinations, offersByType}) => {
             <span class="visually-hidden">Price</span>
             &euro;
           </label>
-          <input class="event__input  event__input--price" id="event-price-1" type="text" name="event-price" value="${basePrice}">
+          <input class="event__input  event__input--price" id="event-price-1" type="number" name="event-price" value="${basePrice}" min="1" step="1" required>
         </div>
 
         <button class="event__save-btn  btn  btn--blue" type="submit">Save</button>
@@ -149,14 +149,16 @@ const createEditFormTemplate = ({point, destinations, offersByType}) => {
 export default class EditFormView extends AbstractStatefulView {
   #handleFormSubmit;
   #handleRollupClick;
+  #handleDeleteClick;
   #dateFromPicker = null;
   #dateToPicker = null;
 
-  constructor({point, destinations, offersByType, onFormSubmit, onRollupClick}) {
+  constructor({point, destinations, offersByType, onFormSubmit, onRollupClick, onDeleteClick}) {
     super();
     this._state = EditFormView.parsePointToState(point, destinations, offersByType);
     this.#handleFormSubmit = onFormSubmit;
     this.#handleRollupClick = onRollupClick;
+    this.#handleDeleteClick = onDeleteClick;
     this._restoreHandlers();
   }
 
@@ -186,10 +188,16 @@ export default class EditFormView extends AbstractStatefulView {
       .addEventListener('change', this.#typeChangeHandler);
     this.element
       .querySelector('.event__input--destination')
-      .addEventListener('input', this.#destinationChangeHandler);
+      .addEventListener('change', this.#destinationChangeHandler);
+    this.element
+      .querySelector('.event__input--price')
+      .addEventListener('change', this.#priceChangeHandler);
     this.element
       .querySelector('.event__available-offers')
       .addEventListener('change', this.#offersChangeHandler);
+    this.element
+      .querySelector('.event__reset-btn')
+      .addEventListener('click', this.#deleteClickHandler);
     this.#initDatePickers();
   }
 
@@ -260,6 +268,10 @@ export default class EditFormView extends AbstractStatefulView {
 
   #formSubmitHandler = (evt) => {
     evt.preventDefault();
+    if (!this.#isFormStateValid()) {
+      return;
+    }
+
     this.#handleFormSubmit?.(this._state.point);
   };
 
@@ -289,6 +301,7 @@ export default class EditFormView extends AbstractStatefulView {
     );
 
     if (!selectedDestination) {
+      evt.target.value = this.#getDestinationNameById(this._state.point.destinationId);
       return;
     }
 
@@ -300,6 +313,22 @@ export default class EditFormView extends AbstractStatefulView {
       point: {
         ...this._state.point,
         destinationId: selectedDestination.id,
+      },
+    });
+  };
+
+  #priceChangeHandler = (evt) => {
+    const parsedPrice = Number(evt.target.value);
+
+    if (!Number.isInteger(parsedPrice) || parsedPrice < 1) {
+      evt.target.value = String(this._state.point.basePrice);
+      return;
+    }
+
+    this.updateElement({
+      point: {
+        ...this._state.point,
+        basePrice: parsedPrice,
       },
     });
   };
@@ -316,6 +345,25 @@ export default class EditFormView extends AbstractStatefulView {
       },
     });
   };
+
+  #deleteClickHandler = (evt) => {
+    evt.preventDefault();
+    this.#handleDeleteClick?.(this._state.point);
+  };
+
+  #getDestinationNameById(destinationId) {
+    return this._state.destinations.find((destination) => destination.id === destinationId)?.name ?? '';
+  }
+
+  #isFormStateValid() {
+    const hasDestination = this._state.destinations.some(
+      (destination) => destination.id === this._state.point.destinationId,
+    );
+    const hasValidPrice =
+      Number.isInteger(this._state.point.basePrice) && this._state.point.basePrice >= 1;
+
+    return hasDestination && hasValidPrice;
+  }
 }
 
 

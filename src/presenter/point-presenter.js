@@ -1,6 +1,7 @@
 import PointView from '../view/point-view.js';
 import EditFormView from '../view/edit-form-view.js';
 import {render, replace, remove} from '../framework/render.js';
+import {USER_ACTIONS} from '../const.js';
 
 export default class PointPresenter {
   #pointListContainer = null;
@@ -82,17 +83,21 @@ export default class PointPresenter {
   };
 
   #handleFormSubmit = (updatedPoint) => {
-    this.#onPointChange(updatedPoint);
+    this.#onPointChange(USER_ACTIONS.UPDATE_POINT, updatedPoint);
     this.#replaceFormToPoint();
   };
 
   #handleRollupClick = (updatedPoint) => {
-    this.#onPointChange(updatedPoint);
+    this.#onPointChange(USER_ACTIONS.UPDATE_POINT, updatedPoint);
     this.#replaceFormToPoint();
   };
 
   #handleFavoriteClick = (updatedPoint) => {
-    this.#onPointChange(updatedPoint);
+    this.#onPointChange(USER_ACTIONS.UPDATE_POINT, updatedPoint);
+  };
+
+  #handleDeleteClick = (point) => {
+    this.#onPointChange(USER_ACTIONS.DELETE_POINT, point);
   };
 
   #createPointComponent() {
@@ -115,6 +120,7 @@ export default class PointPresenter {
       offersByType: this.#offersByType,
       onFormSubmit: this.#handleFormSubmit,
       onRollupClick: this.#handleRollupClick,
+      onDeleteClick: this.#handleDeleteClick,
     });
   }
 
