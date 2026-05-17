@@ -82,18 +82,18 @@ export default class PointPresenter {
     this.#isPointMode = true;
   };
 
-  #handleFormSubmit = (updatedPoint) => {
-    this.#onPointChange(USER_ACTIONS.UPDATE_POINT, updatedPoint);
+  #handleFormSubmit = async (updatedPoint) => {
+    await this.#onPointChange(USER_ACTIONS.UPDATE_POINT, updatedPoint);
     this.#replaceFormToPoint();
   };
 
-  #handleRollupClick = (updatedPoint) => {
-    this.#onPointChange(USER_ACTIONS.UPDATE_POINT, updatedPoint);
+  #handleRollupClick = async (updatedPoint) => {
+    await this.#onPointChange(USER_ACTIONS.UPDATE_POINT, updatedPoint);
     this.#replaceFormToPoint();
   };
 
-  #handleFavoriteClick = (updatedPoint) => {
-    this.#onPointChange(USER_ACTIONS.UPDATE_POINT, updatedPoint);
+  #handleFavoriteClick = async (updatedPoint) => {
+    await this.#onPointChange(USER_ACTIONS.UPDATE_POINT, updatedPoint);
   };
 
   #handleDeleteClick = (point) => {

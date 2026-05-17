@@ -36,5 +36,17 @@ const USER_ACTIONS = {
   DELETE_POINT: 'deletePoint',
 };
 
-export {POINT_TYPES, FILTER_TYPES, EMPTY_LIST_MESSAGE, SORT_TYPES, USER_ACTIONS};
+const FAILED_LOAD_MESSAGE = 'Failed to load latest route information';
+
+const API_URL = 'https://24.objects.htmlacademy.pro/big-trip';
+
+export {
+  POINT_TYPES,
+  FILTER_TYPES,
+  EMPTY_LIST_MESSAGE,
+  SORT_TYPES,
+  USER_ACTIONS,
+  FAILED_LOAD_MESSAGE,
+  API_URL,
+};
 
