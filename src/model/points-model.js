@@ -1,17 +1,39 @@
-import {generatePoint, destinations, offersByType} from '../mock/point.js';
-import {generateFilters} from '../mock/filter.js';
+import {adaptToApp} from '../api/adapters/point-adapter.js';
+import {generateFilters} from '../utils/filter.js';
 import Observable from '../framework/observable.js';
 
-const POINT_COUNT = 5;
-
 export default class PointsModel extends Observable {
-  #newPointId = POINT_COUNT + 1;
+  #api = null;
+  #newPointId = 1;
 
-  constructor() {
+  constructor({api}) {
     super();
-    this.points = this.#ensurePresentPoint(Array.from({length: POINT_COUNT}, generatePoint));
-    this.destinations = destinations;
-    this.offersByType = offersByType;
+    this.#api = api;
+    this.points = [];
+    this.destinations = [];
+    this.offersByType = [];
+  }
+
+  async init() {
+    try {
+      const points = await this.#api.getPoints();
+      this.points = points.map(adaptToApp);
+    } catch {
+      this.points = [];
+      throw new Error('Failed to load points');
+    }
+
+    try {
+      this.destinations = await this.#api.getDestinations();
+    } catch {
+      this.destinations = [];
+    }
+
+    try {
+      this.offersByType = await this.#api.getOffers();
+    } catch {
+      this.offersByType = [];
+    }
   }
 
   getPoints() {
@@ -23,24 +45,27 @@ export default class PointsModel extends Observable {
     this._notify('pointsListChange', this.getPoints());
   }
 
-  updatePoint(pointId, updatedPoint) {
+  async updatePoint(pointId, updatedPoint) {
     const index = this.points.findIndex((point) => point.id === pointId);
 
     if (index === -1) {
       return null;
     }
 
+    const serverPoint = await this.#api.updatePoint(updatedPoint);
+    const appPoint = adaptToApp(serverPoint);
+
     const updatedPoints = this.getPoints();
-    updatedPoints[index] = updatedPoint;
+    updatedPoints[index] = appPoint;
     this.setPoints(updatedPoints);
 
-    return updatedPoint;
+    return appPoint;
   }
 
   addPoint(newPoint) {
     const pointToAdd = {
       ...newPoint,
-      id: this.#newPointId,
+      id: String(this.#newPointId),
     };
 
     this.#newPointId += 1;
@@ -74,28 +99,4 @@ export default class PointsModel extends Observable {
   getFilters() {
     return generateFilters(this.getPoints());
   }
-
-  #ensurePresentPoint(points) {
-    const now = new Date();
-    const hasPresentPoint = points.some((point) => point.dateFrom <= now && point.dateTo >= now);
-
-    if (hasPresentPoint || points.length === 0) {
-      return points;
-    }
-
-    const presentPointStart = new Date(now.getTime() - 60 * 60 * 1000);
-    const presentPointEnd = new Date(now.getTime() + 60 * 60 * 1000);
-
-    const [firstPoint, ...otherPoints] = points;
-
-    return [
-      {
-        ...firstPoint,
-        dateFrom: presentPointStart,
-        dateTo: presentPointEnd,
-      },
-      ...otherPoints,
-    ];
-  }
 }
-

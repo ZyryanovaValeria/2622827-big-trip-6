@@ -5,7 +5,7 @@ import CreateFormView from '../view/create-form-view.js';
 import PointPresenter from './point-presenter.js';
 import {remove, render, RenderPosition} from '../framework/render.js';
 import {FILTER_TYPES, SORT_TYPES, USER_ACTIONS} from '../const.js';
-import {filter} from '../mock/filter.js';
+import {filter} from '../utils/filter.js';
 
 export default class BoardPresenter {
   pointListComponent = new PointListView();
@@ -74,10 +74,10 @@ export default class BoardPresenter {
     }
   }
 
-  #handlePointChange = (actionType, updatedPoint) => {
+  #handlePointChange = async (actionType, updatedPoint) => {
     switch (actionType) {
       case USER_ACTIONS.UPDATE_POINT:
-        this.pointsModel.updatePoint(updatedPoint.id, updatedPoint);
+        await this.pointsModel.updatePoint(updatedPoint.id, updatedPoint);
         break;
       case USER_ACTIONS.ADD_POINT:
         this.pointsModel.addPoint(updatedPoint);

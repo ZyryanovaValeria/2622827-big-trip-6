@@ -336,7 +336,7 @@ export default class EditFormView extends AbstractStatefulView {
   #offersChangeHandler = () => {
     const selectedOffers = Array.from(
       this.element.querySelectorAll('.event__offer-checkbox:checked'),
-    ).map((offerElement) => Number(offerElement.id.replace('event-offer-', '')));
+    ).map((offerElement) => offerElement.id.replace('event-offer-', ''));
 
     this.updateElement({
       point: {
