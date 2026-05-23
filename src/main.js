@@ -1,5 +1,6 @@
 import BoardPresenter from './presenter/board-presenter.js';
 import FilterPresenter from './presenter/filter-presenter.js';
+import TripInfoPresenter from './presenter/trip-info-presenter.js';
 import PointsModel from './model/points-model.js';
 import FilterModel from './model/filter-model.js';
 import TripApi from './api/trip-api.js';
@@ -9,6 +10,7 @@ import UiBlocker from './framework/ui-blocker/ui-blocker.js';
 import {render, remove} from './framework/render.js';
 import {API_URL} from './const.js';
 
+const tripMainContainer = document.querySelector('.trip-main');
 const filtersContainer = document.querySelector('.trip-controls__filters');
 const tripEventsSection = document.querySelector('.trip-events');
 const newPointButton = document.querySelector('.trip-main__event-add-btn');
@@ -33,6 +35,11 @@ const filterPresenter = new FilterPresenter({
   filterModel,
 });
 
+const tripInfoPresenter = new TripInfoPresenter({
+  tripMainContainer,
+  pointsModel,
+});
+
 const loadingComponent = new LoadingView();
 render(loadingComponent, tripEventsSection);
 
@@ -40,12 +47,14 @@ const bootstrap = async () => {
   try {
     await pointsModel.init();
     remove(loadingComponent);
+    tripInfoPresenter.init();
     filterPresenter.init();
     boardPresenter.init();
     newPointButton.disabled = false;
   } catch {
     remove(loadingComponent);
     render(new FailedLoadView(), tripEventsSection);
+    tripInfoPresenter.init();
     filterPresenter.init();
   }
 };
