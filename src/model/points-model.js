@@ -4,7 +4,6 @@ import Observable from '../framework/observable.js';
 
 export default class PointsModel extends Observable {
   #api = null;
-  #newPointId = 1;
 
   constructor({api}) {
     super();
@@ -17,20 +16,22 @@ export default class PointsModel extends Observable {
   async init() {
     try {
       const points = await this.#api.getPoints();
-      this.points = points.map(adaptToApp);
+      this.points = Array.isArray(points) ? points.map(adaptToApp) : [];
     } catch {
       this.points = [];
       throw new Error('Failed to load points');
     }
 
     try {
-      this.destinations = await this.#api.getDestinations();
+      const destinations = await this.#api.getDestinations();
+      this.destinations = Array.isArray(destinations) ? destinations : [];
     } catch {
       this.destinations = [];
     }
 
     try {
-      this.offersByType = await this.#api.getOffers();
+      const offers = await this.#api.getOffers();
+      this.offersByType = Array.isArray(offers) ? offers : [];
     } catch {
       this.offersByType = [];
     }
@@ -62,19 +63,15 @@ export default class PointsModel extends Observable {
     return appPoint;
   }
 
-  addPoint(newPoint) {
-    const pointToAdd = {
-      ...newPoint,
-      id: String(this.#newPointId),
-    };
+  async addPoint(newPoint) {
+    const serverPoint = await this.#api.createPoint(newPoint);
+    const appPoint = adaptToApp(serverPoint);
+    this.setPoints([...this.getPoints(), appPoint]);
 
-    this.#newPointId += 1;
-    this.setPoints([pointToAdd, ...this.getPoints()]);
-
-    return pointToAdd;
+    return appPoint;
   }
 
-  deletePoint(pointId) {
+  async deletePoint(pointId) {
     const points = this.getPoints();
     const index = points.findIndex((point) => point.id === pointId);
 
@@ -82,10 +79,11 @@ export default class PointsModel extends Observable {
       return null;
     }
 
-    const [deletedPoint] = points.splice(index, 1);
+    await this.#api.deletePoint(pointId);
+    points.splice(index, 1);
     this.setPoints(points);
 
-    return deletedPoint;
+    return pointId;
   }
 
   getDestinations() {

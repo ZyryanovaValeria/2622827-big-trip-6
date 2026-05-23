@@ -5,6 +5,7 @@ import FilterModel from './model/filter-model.js';
 import TripApi from './api/trip-api.js';
 import LoadingView from './view/loading-view.js';
 import FailedLoadView from './view/failed-load-view.js';
+import UiBlocker from './framework/ui-blocker/ui-blocker.js';
 import {render, remove} from './framework/render.js';
 import {API_URL} from './const.js';
 
@@ -16,12 +17,14 @@ const authorization = `Basic ${Math.random().toString(36).slice(2, 14)}`;
 const tripApi = new TripApi(API_URL, authorization);
 const pointsModel = new PointsModel({api: tripApi});
 const filterModel = new FilterModel();
+const uiBlocker = new UiBlocker({lowerLimit: 350, upperLimit: 500});
 
 const boardPresenter = new BoardPresenter({
   boardContainer: tripEventsSection,
   pointsModel,
   filterModel,
   newPointButton,
+  uiBlocker,
 });
 
 const filterPresenter = new FilterPresenter({

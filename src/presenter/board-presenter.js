@@ -7,6 +7,9 @@ import {remove, render, RenderPosition} from '../framework/render.js';
 import {FILTER_TYPES, SORT_TYPES, USER_ACTIONS} from '../const.js';
 import {filter} from '../utils/filter.js';
 
+const SAVE_BUTTON_DEFAULT_TEXT = 'Save';
+const SAVE_BUTTON_SAVING_TEXT = 'Saving...';
+
 export default class BoardPresenter {
   pointListComponent = new PointListView();
   #sortComponent = null;
@@ -15,11 +18,12 @@ export default class BoardPresenter {
   #pointPresenters = [];
   #currentSortType = SORT_TYPES.DAY;
 
-  constructor({boardContainer, pointsModel, filterModel, newPointButton}) {
+  constructor({boardContainer, pointsModel, filterModel, newPointButton, uiBlocker}) {
     this.boardContainer = boardContainer;
     this.pointsModel = pointsModel;
     this.filterModel = filterModel;
     this.newPointButton = newPointButton;
+    this.uiBlocker = uiBlocker;
   }
 
   init() {
@@ -68,6 +72,7 @@ export default class BoardPresenter {
         offersByType,
         onPointChange: this.#handlePointChange,
         onBeforeEdit: this.#handleBeforeEdit,
+        uiBlocker: this.uiBlocker,
       });
       pointPresenter.init();
       this.#pointPresenters.push(pointPresenter);
@@ -80,11 +85,11 @@ export default class BoardPresenter {
         await this.pointsModel.updatePoint(updatedPoint.id, updatedPoint);
         break;
       case USER_ACTIONS.ADD_POINT:
-        this.pointsModel.addPoint(updatedPoint);
+        await this.pointsModel.addPoint(updatedPoint);
         this.#destroyCreateForm();
         break;
       case USER_ACTIONS.DELETE_POINT:
-        this.pointsModel.deletePoint(updatedPoint.id);
+        await this.pointsModel.deletePoint(updatedPoint.id);
         break;
       default:
         break;
@@ -175,8 +180,19 @@ export default class BoardPresenter {
     this.newPointButton.disabled = false;
   };
 
-  #handleCreateFormSubmit = (newPoint) => {
-    this.#handlePointChange(USER_ACTIONS.ADD_POINT, newPoint);
+  #handleCreateFormSubmit = async (newPoint) => {
+    const createForm = this.#createFormComponent;
+    createForm.setSaveButtonText(SAVE_BUTTON_SAVING_TEXT);
+    this.uiBlocker.block();
+
+    try {
+      await this.#handlePointChange(USER_ACTIONS.ADD_POINT, newPoint);
+    } catch {
+      createForm.shake();
+    } finally {
+      createForm.setSaveButtonText(SAVE_BUTTON_DEFAULT_TEXT);
+      this.uiBlocker.unblock();
+    }
   };
 
   #handleNewPointButtonClick = (evt) => {

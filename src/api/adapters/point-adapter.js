@@ -9,15 +9,22 @@ const adaptToApp = (point) => ({
   offers: Array.isArray(point.offers) ? [...point.offers] : [],
 });
 
-const adaptToServer = (point) => ({
-  id: point.id,
-  type: point.type,
-  destination: point.destinationId,
-  'date_from': point.dateFrom.toISOString(),
-  'date_to': point.dateTo.toISOString(),
-  'base_price': point.basePrice,
-  'is_favorite': point.isFavorite,
-  offers: [...point.offers],
-});
+const adaptToServer = (point) => {
+  const serverPoint = {
+    type: point.type,
+    destination: point.destinationId,
+    'date_from': point.dateFrom.toISOString(),
+    'date_to': point.dateTo.toISOString(),
+    'base_price': point.basePrice,
+    'is_favorite': point.isFavorite,
+    offers: [...point.offers],
+  };
+
+  if (point.id) {
+    serverPoint.id = point.id;
+  }
+
+  return serverPoint;
+};
 
 export {adaptToApp, adaptToServer};

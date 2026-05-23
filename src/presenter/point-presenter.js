@@ -3,6 +3,11 @@ import EditFormView from '../view/edit-form-view.js';
 import {render, replace, remove} from '../framework/render.js';
 import {USER_ACTIONS} from '../const.js';
 
+const SAVE_BUTTON_DEFAULT_TEXT = 'Save';
+const SAVE_BUTTON_SAVING_TEXT = 'Saving...';
+const DELETE_BUTTON_DEFAULT_TEXT = 'Delete';
+const DELETE_BUTTON_DELETING_TEXT = 'Deleting...';
+
 export default class PointPresenter {
   #pointListContainer = null;
   #point = null;
@@ -10,6 +15,7 @@ export default class PointPresenter {
   #offersByType = null;
   #onPointChange = null;
   #onBeforeEdit = null;
+  #uiBlocker = null;
 
   #pointComponent = null;
   #editFormComponent = null;
@@ -22,6 +28,7 @@ export default class PointPresenter {
     offersByType,
     onPointChange,
     onBeforeEdit,
+    uiBlocker,
   }) {
     this.#pointListContainer = pointListContainer;
     this.#point = point;
@@ -29,6 +36,7 @@ export default class PointPresenter {
     this.#offersByType = offersByType;
     this.#onPointChange = onPointChange;
     this.#onBeforeEdit = onBeforeEdit;
+    this.#uiBlocker = uiBlocker;
   }
 
   get pointId() {
@@ -49,22 +57,18 @@ export default class PointPresenter {
   #getSelectedOffers() {
     const offersOfType = this.#offersByType.find(
       (offer) => offer.type === this.#point.type,
-    ).offers;
+    )?.offers ?? [];
 
     return offersOfType.filter((offer) =>
       this.#point.offers.includes(offer.id),
     );
   }
 
-  #getAllOffersOfType() {
-    return this.#offersByType.find(
-      (offer) => offer.type === this.#point.type,
-    ).offers;
-  }
-
   #escKeyDownHandler = (evt) => {
     if (evt.key === 'Escape' || evt.key === 'Esc') {
       evt.preventDefault();
+      this.#editFormComponent.setSaveButtonText(SAVE_BUTTON_DEFAULT_TEXT);
+      this.#editFormComponent.setDeleteButtonText(DELETE_BUTTON_DEFAULT_TEXT);
       this.#replaceFormToPoint();
     }
   };
@@ -83,21 +87,61 @@ export default class PointPresenter {
   };
 
   #handleFormSubmit = async (updatedPoint) => {
-    await this.#onPointChange(USER_ACTIONS.UPDATE_POINT, updatedPoint);
-    this.#replaceFormToPoint();
+    const editForm = this.#editFormComponent;
+    editForm.setSaveButtonText(SAVE_BUTTON_SAVING_TEXT);
+    this.#uiBlocker.block();
+
+    try {
+      await this.#onPointChange(USER_ACTIONS.UPDATE_POINT, updatedPoint);
+      editForm.setSaveButtonText(SAVE_BUTTON_DEFAULT_TEXT);
+      this.#replaceFormToPoint();
+    } catch {
+      editForm.setSaveButtonText(SAVE_BUTTON_DEFAULT_TEXT);
+      editForm.shake();
+    } finally {
+      this.#uiBlocker.unblock();
+    }
   };
 
   #handleRollupClick = async (updatedPoint) => {
-    await this.#onPointChange(USER_ACTIONS.UPDATE_POINT, updatedPoint);
-    this.#replaceFormToPoint();
+    const editForm = this.#editFormComponent;
+    this.#uiBlocker.block();
+
+    try {
+      await this.#onPointChange(USER_ACTIONS.UPDATE_POINT, updatedPoint);
+      this.#replaceFormToPoint();
+    } catch {
+      editForm.shake();
+    } finally {
+      this.#uiBlocker.unblock();
+    }
   };
 
   #handleFavoriteClick = async (updatedPoint) => {
-    await this.#onPointChange(USER_ACTIONS.UPDATE_POINT, updatedPoint);
+    this.#uiBlocker.block();
+
+    try {
+      await this.#onPointChange(USER_ACTIONS.UPDATE_POINT, updatedPoint);
+    } catch {
+      this.#pointComponent.shake();
+    } finally {
+      this.#uiBlocker.unblock();
+    }
   };
 
-  #handleDeleteClick = (point) => {
-    this.#onPointChange(USER_ACTIONS.DELETE_POINT, point);
+  #handleDeleteClick = async (point) => {
+    const editForm = this.#editFormComponent;
+    editForm.setDeleteButtonText(DELETE_BUTTON_DELETING_TEXT);
+    this.#uiBlocker.block();
+
+    try {
+      await this.#onPointChange(USER_ACTIONS.DELETE_POINT, point);
+    } catch {
+      editForm.setDeleteButtonText(DELETE_BUTTON_DEFAULT_TEXT);
+      editForm.shake();
+    } finally {
+      this.#uiBlocker.unblock();
+    }
   };
 
   #createPointComponent() {
@@ -134,6 +178,8 @@ export default class PointPresenter {
       return;
     }
 
+    this.#editFormComponent.setSaveButtonText(SAVE_BUTTON_DEFAULT_TEXT);
+    this.#editFormComponent.setDeleteButtonText(DELETE_BUTTON_DEFAULT_TEXT);
     replace(this.#pointComponent, this.#editFormComponent);
     document.removeEventListener('keydown', this.#escKeyDownHandler);
     this.#isPointMode = true;

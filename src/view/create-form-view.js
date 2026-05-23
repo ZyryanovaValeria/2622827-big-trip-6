@@ -140,7 +140,7 @@ const createCreateFormTemplate = ({point, destinations, offersByType}) => {
 
 const createDefaultPoint = (destinations) => ({
   type: 'flight',
-  destinationId: destinations[0].id,
+  destinationId: destinations[0]?.id ?? null,
   dateFrom: new Date(),
   dateTo: new Date(),
   basePrice: 1,
@@ -216,21 +216,8 @@ export default class CreateFormView extends AbstractStatefulView {
       enableTime: true,
       // eslint-disable-next-line camelcase -- flatpickr option
       time_24hr: true,
-      onClose: (selectedDates) => {
-        if (!selectedDates[0]) {
-          return;
-        }
-
-        if (dayjs(selectedDates[0]).valueOf() === dayjs(this._state.point.dateFrom).valueOf()) {
-          return;
-        }
-
-        this.updateElement({
-          point: {
-            ...this._state.point,
-            dateFrom: selectedDates[0],
-          },
-        });
+      onClose: ([dateFrom]) => {
+        this.#handleDateFromChange(dateFrom);
       },
     });
 
@@ -240,23 +227,53 @@ export default class CreateFormView extends AbstractStatefulView {
       enableTime: true,
       // eslint-disable-next-line camelcase -- flatpickr option
       time_24hr: true,
-      onClose: (selectedDates) => {
-        if (!selectedDates[0]) {
-          return;
-        }
-
-        if (dayjs(selectedDates[0]).valueOf() === dayjs(this._state.point.dateTo).valueOf()) {
-          return;
-        }
-
-        this.updateElement({
-          point: {
-            ...this._state.point,
-            dateTo: selectedDates[0],
-          },
-        });
+      onClose: ([dateTo]) => {
+        this.#handleDateToChange(dateTo);
       },
     });
+  }
+
+  #handleDateFromChange(dateFrom) {
+    if (!dateFrom) {
+      return;
+    }
+
+    if (dayjs(dateFrom).valueOf() === dayjs(this._state.point.dateFrom).valueOf()) {
+      return;
+    }
+
+    setTimeout(() => {
+      this.updateElement({
+        point: {
+          ...this._state.point,
+          dateFrom,
+        },
+      });
+    });
+  }
+
+  #handleDateToChange(dateTo) {
+    if (!dateTo) {
+      return;
+    }
+
+    if (dayjs(dateTo).valueOf() === dayjs(this._state.point.dateTo).valueOf()) {
+      return;
+    }
+
+    setTimeout(() => {
+      this.updateElement({
+        point: {
+          ...this._state.point,
+          dateTo,
+        },
+      });
+    });
+  }
+
+  updateElement(update) {
+    this.#destroyDatePickers();
+    super.updateElement(update);
   }
 
   #formSubmitHandler = (evt) => {
@@ -350,5 +367,9 @@ export default class CreateFormView extends AbstractStatefulView {
       Number.isInteger(this._state.point.basePrice) && this._state.point.basePrice >= 1;
 
     return hasDestination && hasValidPrice;
+  }
+
+  setSaveButtonText(text) {
+    this.element.querySelector('.event__save-btn').textContent = text;
   }
 }
