@@ -50,5 +50,12 @@ module.exports = {
     },
     compress: true,
     port: 8080,
+    proxy: [
+      {
+        context: ['/big-trip'],
+        target: 'https://24.objects.htmlacademy.pro',
+        changeOrigin: true,
+      },
+    ],
   },
 };

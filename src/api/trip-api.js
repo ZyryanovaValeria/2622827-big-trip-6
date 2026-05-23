@@ -17,6 +17,18 @@ export default class TripApi extends ApiService {
       .then(ApiService.parseResponse);
   }
 
+  createPoint(point) {
+    const serverPoint = adaptToServer(point);
+    delete serverPoint.id;
+
+    return this._load({
+      url: 'points',
+      method: 'POST',
+      body: JSON.stringify(serverPoint),
+      headers: new Headers({'Content-Type': 'application/json'}),
+    }).then(ApiService.parseResponse);
+  }
+
   updatePoint(point) {
     return this._load({
       url: `points/${point.id}`,
@@ -24,5 +36,12 @@ export default class TripApi extends ApiService {
       body: JSON.stringify(adaptToServer(point)),
       headers: new Headers({'Content-Type': 'application/json'}),
     }).then(ApiService.parseResponse);
+  }
+
+  deletePoint(pointId) {
+    return this._load({
+      url: `points/${pointId}`,
+      method: 'DELETE',
+    });
   }
 }
