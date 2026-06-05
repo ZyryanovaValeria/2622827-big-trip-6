@@ -32,7 +32,7 @@ const createOffersSelectorTemplate = (offers, selectedOfferIds) => {
   }
 
   return offers.map((offer) => {
-    const checkedAttribute = selectedOfferIds.includes(offer.id) ? 'checked' : '';
+    const checkedAttribute = selectedOfferIds.some((id) => String(id) === String(offer.id)) ? 'checked' : '';
 
     return (
       `<div class="event__offer-selector">
@@ -47,14 +47,63 @@ const createOffersSelectorTemplate = (offers, selectedOfferIds) => {
   }).join('');
 };
 
-const createPicturesTemplate = (pictures) => {
+const createPhotosContainerTemplate = (pictures) => {
   if (!pictures || pictures.length === 0) {
     return '';
   }
 
-  return pictures.map((picture) =>
+  const picturesTemplate = pictures.map((picture) =>
     `<img class="event__photo" src="${picture.src}" alt="${picture.description}">`
   ).join('');
+
+  return (
+    `<div class="event__photos-container">
+      <div class="event__photos-tape">
+        ${picturesTemplate}
+      </div>
+    </div>`
+  );
+};
+
+const createOffersSectionTemplate = (offers, selectedOfferIds) => {
+  const offersTemplate = createOffersSelectorTemplate(offers, selectedOfferIds);
+
+  if (!offersTemplate) {
+    return '';
+  }
+
+  return (
+    `<section class="event__section  event__section--offers">
+      <h3 class="event__section-title  event__section-title--offers">Offers</h3>
+
+      <div class="event__available-offers">
+        ${offersTemplate}
+      </div>
+    </section>`
+  );
+};
+
+const createDestinationSectionTemplate = (destination) => {
+  if (!destination) {
+    return '';
+  }
+
+  const hasDescription = Boolean(destination.description);
+  const hasPictures = Boolean(destination.pictures?.length);
+
+  if (!hasDescription && !hasPictures) {
+    return '';
+  }
+
+  const photosContainerTemplate = createPhotosContainerTemplate(destination.pictures ?? []);
+
+  return (
+    `<section class="event__section  event__section--destination">
+      <h3 class="event__section-title  event__section-title--destination">Destination</h3>
+      <p class="event__destination-description">${destination.description ?? ''}</p>
+      ${photosContainerTemplate}
+    </section>`
+  );
 };
 
 const createEditFormTemplate = ({point, destinations, offersByType}) => {
@@ -69,8 +118,8 @@ const createEditFormTemplate = ({point, destinations, offersByType}) => {
 
   const eventTypeItemsTemplate = createEventTypeItemsTemplate(currentType);
   const destinationOptionsTemplate = createDestinationOptionsTemplate(destinations);
-  const offersTemplate = createOffersSelectorTemplate(offersOfType, point.offers);
-  const picturesTemplate = createPicturesTemplate(destination?.pictures ?? []);
+  const offersSectionTemplate = createOffersSectionTemplate(offersOfType, point.offers);
+  const destinationSectionTemplate = createDestinationSectionTemplate(destination);
 
   return (
     `<form class="event event--edit" action="#" method="post">
@@ -124,23 +173,8 @@ const createEditFormTemplate = ({point, destinations, offersByType}) => {
         </button>
       </header>
       <section class="event__details">
-        <section class="event__section  event__section--offers">
-          <h3 class="event__section-title  event__section-title--offers">Offers</h3>
-
-          <div class="event__available-offers">
-            ${offersTemplate}
-          </div>
-        </section>
-
-        <section class="event__section  event__section--destination">
-          <h3 class="event__section-title  event__section-title--destination">Destination</h3>
-          <p class="event__destination-description">${destination?.description ?? ''}</p>
-          <div class="event__photos-container">
-            <div class="event__photos-tape">
-              ${picturesTemplate}
-            </div>
-          </div>
-        </section>
+        ${offersSectionTemplate}
+        ${destinationSectionTemplate}
       </section>
     </form>`
   );
@@ -190,11 +224,14 @@ export default class EditFormView extends AbstractStatefulView {
       .querySelector('.event__input--destination')
       .addEventListener('change', this.#destinationChangeHandler);
     this.element
+      .querySelector('.event__input--destination')
+      .addEventListener('input', this.#destinationInputHandler);
+    this.element
       .querySelector('.event__input--price')
       .addEventListener('change', this.#priceChangeHandler);
     this.element
       .querySelector('.event__available-offers')
-      .addEventListener('change', this.#offersChangeHandler);
+      ?.addEventListener('change', this.#offersChangeHandler);
     this.element
       .querySelector('.event__reset-btn')
       .addEventListener('click', this.#deleteClickHandler);
@@ -294,7 +331,7 @@ export default class EditFormView extends AbstractStatefulView {
 
   #rollupClickHandler = (evt) => {
     evt.preventDefault();
-    this.#handleRollupClick?.(this._state.point);
+    this.#handleRollupClick?.();
   };
 
   #typeChangeHandler = (evt) => {
@@ -307,7 +344,25 @@ export default class EditFormView extends AbstractStatefulView {
       point: {
         ...this._state.point,
         type: selectedType,
+        destinationId: null,
         offers: [],
+      },
+    });
+  };
+
+  #destinationInputHandler = (evt) => {
+    if (evt.target.value !== '') {
+      return;
+    }
+
+    if (this._state.point.destinationId === null) {
+      return;
+    }
+
+    this.updateElement({
+      point: {
+        ...this._state.point,
+        destinationId: null,
       },
     });
   };
@@ -318,6 +373,18 @@ export default class EditFormView extends AbstractStatefulView {
     );
 
     if (!selectedDestination) {
+      if (evt.target.value === '') {
+        if (this._state.point.destinationId !== null) {
+          this.updateElement({
+            point: {
+              ...this._state.point,
+              destinationId: null,
+            },
+          });
+        }
+        return;
+      }
+
       evt.target.value = this.#getDestinationNameById(this._state.point.destinationId);
       return;
     }
@@ -342,7 +409,11 @@ export default class EditFormView extends AbstractStatefulView {
       return;
     }
 
-    this.updateElement({
+    if (parsedPrice === this._state.point.basePrice) {
+      return;
+    }
+
+    this._setState({
       point: {
         ...this._state.point,
         basePrice: parsedPrice,
@@ -355,7 +426,7 @@ export default class EditFormView extends AbstractStatefulView {
       this.element.querySelectorAll('.event__offer-checkbox:checked'),
     ).map((offerElement) => offerElement.id.replace('event-offer-', ''));
 
-    this.updateElement({
+    this._setState({
       point: {
         ...this._state.point,
         offers: selectedOffers,

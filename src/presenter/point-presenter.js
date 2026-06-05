@@ -19,6 +19,7 @@ export default class PointPresenter {
 
   #pointComponent = null;
   #editFormComponent = null;
+  #listItemElement = null;
   #isPointMode = true;
 
   constructor({
@@ -45,7 +46,10 @@ export default class PointPresenter {
 
   init() {
     this.#renderPoint();
-    render(this.#pointComponent, this.#pointListContainer);
+    this.#listItemElement = document.createElement('li');
+    this.#listItemElement.classList.add('trip-events__item');
+    this.#pointListContainer.append(this.#listItemElement);
+    render(this.#pointComponent, this.#listItemElement);
   }
 
   #getDestination() {
@@ -67,24 +71,34 @@ export default class PointPresenter {
   #escKeyDownHandler = (evt) => {
     if (evt.key === 'Escape' || evt.key === 'Esc') {
       evt.preventDefault();
-      this.#editFormComponent.setSaveButtonText(SAVE_BUTTON_DEFAULT_TEXT);
-      this.#editFormComponent.setDeleteButtonText(DELETE_BUTTON_DEFAULT_TEXT);
+      this.#editFormComponent?.setSaveButtonText(SAVE_BUTTON_DEFAULT_TEXT);
+      this.#editFormComponent?.setDeleteButtonText(DELETE_BUTTON_DEFAULT_TEXT);
       this.#replaceFormToPoint();
     }
   };
 
   #replacePointToForm = () => {
     this.#onBeforeEdit();
+    this.#editFormComponent = this.#createEditFormComponent();
     replace(this.#editFormComponent, this.#pointComponent);
-    document.addEventListener('keydown', this.#escKeyDownHandler);
+    document.addEventListener('keydown', this.#escKeyDownHandler, true);
     this.#isPointMode = false;
   };
 
   #replaceFormToPoint = () => {
     replace(this.#pointComponent, this.#editFormComponent);
-    document.removeEventListener('keydown', this.#escKeyDownHandler);
+    document.removeEventListener('keydown', this.#escKeyDownHandler, true);
+    this.#editFormComponent = null;
     this.#isPointMode = true;
   };
+
+  #shakeListItem() {
+    this.#listItemElement.classList.add('shake');
+
+    setTimeout(() => {
+      this.#listItemElement.classList.remove('shake');
+    }, 600);
+  }
 
   #handleFormSubmit = async (updatedPoint) => {
     const editForm = this.#editFormComponent;
@@ -103,18 +117,8 @@ export default class PointPresenter {
     }
   };
 
-  #handleRollupClick = async (updatedPoint) => {
-    const editForm = this.#editFormComponent;
-    this.#uiBlocker.block();
-
-    try {
-      await this.#onPointChange(USER_ACTIONS.UPDATE_POINT, updatedPoint);
-      this.#replaceFormToPoint();
-    } catch {
-      editForm.shake();
-    } finally {
-      this.#uiBlocker.unblock();
-    }
+  #handleRollupClick = () => {
+    this.#replaceFormToPoint();
   };
 
   #handleFavoriteClick = async (updatedPoint) => {
@@ -123,7 +127,7 @@ export default class PointPresenter {
     try {
       await this.#onPointChange(USER_ACTIONS.UPDATE_POINT, updatedPoint);
     } catch {
-      this.#pointComponent.shake();
+      this.#shakeListItem();
     } finally {
       this.#uiBlocker.unblock();
     }
@@ -170,7 +174,6 @@ export default class PointPresenter {
 
   #renderPoint() {
     this.#pointComponent = this.#createPointComponent();
-    this.#editFormComponent = this.#createEditFormComponent();
   }
 
   resetView() {
@@ -178,11 +181,9 @@ export default class PointPresenter {
       return;
     }
 
-    this.#editFormComponent.setSaveButtonText(SAVE_BUTTON_DEFAULT_TEXT);
-    this.#editFormComponent.setDeleteButtonText(DELETE_BUTTON_DEFAULT_TEXT);
-    replace(this.#pointComponent, this.#editFormComponent);
-    document.removeEventListener('keydown', this.#escKeyDownHandler);
-    this.#isPointMode = true;
+    this.#editFormComponent?.setSaveButtonText(SAVE_BUTTON_DEFAULT_TEXT);
+    this.#editFormComponent?.setDeleteButtonText(DELETE_BUTTON_DEFAULT_TEXT);
+    this.#replaceFormToPoint();
   }
 
   update(updatedPoint) {
@@ -199,12 +200,17 @@ export default class PointPresenter {
     const oldPointComponent = this.#pointComponent;
     this.#pointComponent = this.#createPointComponent();
     replace(this.#pointComponent, oldPointComponent);
-    this.#editFormComponent = this.#createEditFormComponent();
   }
 
   destroy() {
-    document.removeEventListener('keydown', this.#escKeyDownHandler);
+    document.removeEventListener('keydown', this.#escKeyDownHandler, true);
     remove(this.#pointComponent);
-    remove(this.#editFormComponent);
+
+    if (this.#editFormComponent !== null) {
+      remove(this.#editFormComponent);
+      this.#editFormComponent = null;
+    }
+
+    this.#listItemElement?.remove();
   }
 }
