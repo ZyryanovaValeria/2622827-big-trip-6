@@ -9,7 +9,9 @@ const getRouteTitle = (points, destinations) => {
   const cityNames = [];
 
   sortedPoints.forEach((point) => {
-    const destination = destinations.find((item) => item.id === point.destinationId);
+    const destination = destinations.find(
+      (item) => String(item.id) === String(point.destinationId),
+    );
 
     if (destination && !cityNames.includes(destination.name)) {
       cityNames.push(destination.name);
@@ -49,7 +51,7 @@ const getOffersPrice = (point, offersByType) => {
   const offersOfType = offersByType.find((offer) => offer.type === point.type)?.offers ?? [];
 
   return offersOfType
-    .filter((offer) => point.offers.includes(offer.id))
+    .filter((offer) => point.offers.some((id) => String(id) === String(offer.id)))
     .reduce((total, offer) => total + offer.price, 0);
 };
 

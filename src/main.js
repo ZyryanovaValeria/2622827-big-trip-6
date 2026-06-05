@@ -14,6 +14,7 @@ const tripMainContainer = document.querySelector('.trip-main');
 const filtersContainer = document.querySelector('.trip-controls__filters');
 const tripEventsSection = document.querySelector('.trip-events');
 const newPointButton = document.querySelector('.trip-main__event-add-btn');
+newPointButton.disabled = true;
 
 const authorization = `Basic ${Math.random().toString(36).slice(2, 14)}`;
 const tripApi = new TripApi(API_URL, authorization);
@@ -43,18 +44,18 @@ const tripInfoPresenter = new TripInfoPresenter({
 const loadingComponent = new LoadingView();
 render(loadingComponent, tripEventsSection);
 
+tripInfoPresenter.init();
+
 const bootstrap = async () => {
   try {
     await pointsModel.init();
     remove(loadingComponent);
-    tripInfoPresenter.init();
     filterPresenter.init();
     boardPresenter.init();
     newPointButton.disabled = false;
   } catch {
     remove(loadingComponent);
     render(new FailedLoadView(), tripEventsSection);
-    tripInfoPresenter.init();
     filterPresenter.init();
   }
 };

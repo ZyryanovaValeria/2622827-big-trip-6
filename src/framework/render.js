@@ -14,10 +14,17 @@ const RenderPosition = {
  * @returns {HTMLElement} Созданный элемент
  */
 function createElement(template) {
-  const newElement = document.createElement('div');
-  newElement.innerHTML = template;
+  const wrapper = document.createElement('div');
+  wrapper.innerHTML = template;
+  const element = wrapper.firstElementChild;
 
-  return newElement.firstElementChild;
+  if (!element) {
+    throw new Error('Template has no element');
+  }
+
+  element.remove();
+
+  return element;
 }
 
 /**

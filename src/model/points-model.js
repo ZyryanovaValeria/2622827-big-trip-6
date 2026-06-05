@@ -27,6 +27,7 @@ export default class PointsModel extends Observable {
       this.destinations = Array.isArray(destinations) ? destinations : [];
     } catch {
       this.destinations = [];
+      throw new Error('Failed to load destinations');
     }
 
     try {
@@ -34,7 +35,10 @@ export default class PointsModel extends Observable {
       this.offersByType = Array.isArray(offers) ? offers : [];
     } catch {
       this.offersByType = [];
+      throw new Error('Failed to load offers');
     }
+
+    this._notify('pointsListChange', this.getPoints());
   }
 
   getPoints() {
