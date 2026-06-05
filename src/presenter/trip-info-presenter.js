@@ -1,5 +1,5 @@
 import TripInfoView from '../view/trip-info-view.js';
-import {render, replace, RenderPosition} from '../framework/render.js';
+import {render, replace, remove, RenderPosition} from '../framework/render.js';
 import {getRouteTitle, getTripDates, getTripTotalCost} from '../utils/trip-info.js';
 
 export default class TripInfoPresenter {
@@ -10,15 +10,30 @@ export default class TripInfoPresenter {
   constructor({tripMainContainer, pointsModel}) {
     this.#tripMainContainer = tripMainContainer;
     this.#pointsModel = pointsModel;
+    this.#pointsModel.addObserver(this.#handleModelChange);
   }
 
   init() {
-    this.#pointsModel.addObserver(this.#handleModelChange);
     this.#renderTripInfo();
+  }
+
+  #destroyTripInfo() {
+    if (this.#tripInfoComponent !== null) {
+      remove(this.#tripInfoComponent);
+      this.#tripInfoComponent = null;
+    }
+
+    this.#tripMainContainer.querySelector('.trip-main__trip-info')?.remove();
   }
 
   #renderTripInfo() {
     const points = this.#pointsModel.getPoints();
+
+    if (points.length === 0) {
+      this.#destroyTripInfo();
+      return;
+    }
+
     const destinations = this.#pointsModel.getDestinations();
     const offersByType = this.#pointsModel.getOffersByType();
     const route = getRouteTitle(points, destinations);
@@ -34,6 +49,7 @@ export default class TripInfoPresenter {
     }
 
     replace(this.#tripInfoComponent, prevTripInfoComponent);
+    remove(prevTripInfoComponent);
   }
 
   #handleModelChange = () => {

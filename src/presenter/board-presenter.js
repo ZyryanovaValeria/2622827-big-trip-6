@@ -3,7 +3,7 @@ import PointListView from '../view/point-list-view.js';
 import NoPointView from '../view/no-point-view.js';
 import CreateFormView from '../view/create-form-view.js';
 import PointPresenter from './point-presenter.js';
-import {remove, render, RenderPosition} from '../framework/render.js';
+import {remove, render} from '../framework/render.js';
 import {FILTER_TYPES, SORT_TYPES, USER_ACTIONS} from '../const.js';
 import {filter} from '../utils/filter.js';
 
@@ -15,6 +15,7 @@ export default class BoardPresenter {
   #sortComponent = null;
   #noPointComponent = null;
   #createFormComponent = null;
+  #createFormListItem = null;
   #pointPresenters = [];
   #currentSortType = SORT_TYPES.DAY;
 
@@ -160,23 +161,31 @@ export default class BoardPresenter {
       onCancelClick: this.#destroyCreateForm,
     });
 
+    remove(this.#noPointComponent);
+    this.#noPointComponent = null;
+
     if (!this.pointListComponent.element.parentElement) {
       render(this.pointListComponent, this.boardContainer);
     }
 
-    render(this.#createFormComponent, this.pointListComponent.element, RenderPosition.AFTERBEGIN);
-    document.addEventListener('keydown', this.#escKeyDownHandler);
+    this.#createFormListItem = document.createElement('li');
+    this.#createFormListItem.classList.add('trip-events__item');
+    this.pointListComponent.element.prepend(this.#createFormListItem);
+    render(this.#createFormComponent, this.#createFormListItem);
+    document.addEventListener('keydown', this.#escKeyDownHandler, true);
     this.newPointButton.disabled = true;
   };
 
   #destroyCreateForm = () => {
-    if (this.#createFormComponent === null) {
-      return;
+    document.removeEventListener('keydown', this.#escKeyDownHandler, true);
+
+    if (this.#createFormComponent !== null) {
+      remove(this.#createFormComponent);
+      this.#createFormComponent = null;
     }
 
-    remove(this.#createFormComponent);
-    this.#createFormComponent = null;
-    document.removeEventListener('keydown', this.#escKeyDownHandler);
+    this.#createFormListItem?.remove();
+    this.#createFormListItem = null;
     this.newPointButton.disabled = false;
   };
 

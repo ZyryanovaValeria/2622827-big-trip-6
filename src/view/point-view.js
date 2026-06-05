@@ -40,7 +40,7 @@ const createPointTemplate = (point, destination, offers) => {
     : 'event__favorite-btn';
 
   const typeCapitalized = `${point.type.charAt(0).toUpperCase()}${point.type.slice(1)}`;
-  const title = `${typeCapitalized} ${destination.name}`;
+  const title = `${typeCapitalized} ${destination?.name ?? ''}`;
   const offersTemplate = createOffersTemplate(offers);
 
   return (

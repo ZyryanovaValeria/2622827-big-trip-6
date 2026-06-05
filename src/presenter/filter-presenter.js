@@ -1,6 +1,5 @@
 import FilterView from '../view/filter-view.js';
 import {render, replace} from '../framework/render.js';
-import {FILTER_TYPES} from '../const.js';
 import {generateFilters} from '../utils/filter.js';
 
 export default class FilterPresenter {
@@ -24,12 +23,6 @@ export default class FilterPresenter {
   #renderFilter() {
     const filterType = this.#filterModel.getFilter();
     const filters = generateFilters(this.#pointsModel.getPoints(), filterType);
-    const currentFilter = filters.find((item) => item.type === filterType);
-
-    if (currentFilter?.isDisabled && filterType !== FILTER_TYPES.EVERYTHING) {
-      this.#filterModel.setFilter(FILTER_TYPES.EVERYTHING);
-      return;
-    }
 
     const prevFilterComponent = this.#filterComponent;
 

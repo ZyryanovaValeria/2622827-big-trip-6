@@ -53,7 +53,7 @@ module.exports = {
     proxy: [
       {
         context: ['/big-trip'],
-        target: 'https://24.objects.htmlacademy.pro',
+        target: 'https://23.objects.htmlacademy.pro',
         changeOrigin: true,
       },
     ],
